@@ -1,0 +1,31 @@
+// SPDX-License-Identifier: GPL-2.0
+/ {
+	hwver: hwver {
+		compatible = "mediatek,hwver", "syscon";
+		reg = <0 0x8000000 0 0x1000>;
+	};
+};
+
+&cpu0 {
+	mediatek,hwver = <&hwver>;
+};
+
+&cpu1 {
+	mediatek,hwver = <&hwver>;
+};
+
+&infracfg {
+	bootph-all;
+};
+
+&uart0 {
+	bootph-all;
+};
+
+&uart0_pins {
+	bootph-all;
+};
+
+&eth {
+	mediatek,gmac-id = <1>;
+};

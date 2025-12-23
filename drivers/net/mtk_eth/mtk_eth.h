@@ -128,6 +128,20 @@ enum mkt_eth_capabilities {
 #define ETHSYS_CLKCFG0_REG		0x2c
 #define ETHSYS_TRGMII_CLK_SEL362_5	BIT(11)
 
+/* ethernet reset control register */
+#define ETHSYS_RSTCTRL			0x34
+#define RSTCTRL_FE			BIT(6)
+#define RSTCTRL_WDMA0			BIT(24)
+#define RSTCTRL_WDMA1			BIT(25)
+#define RSTCTRL_WDMA2			BIT(26)
+#define RSTCTRL_PPE0			BIT(31)
+#define RSTCTRL_PPE0_V2			BIT(30)
+#define RSTCTRL_PPE1			BIT(31)
+#define RSTCTRL_PPE0_V3			BIT(29)
+#define RSTCTRL_PPE1_V3			BIT(30)
+#define RSTCTRL_PPE2			BIT(31)
+#define RSTCTRL_ETH			BIT(23)
+
 /* Top misc registers */
 #define TOPMISC_NETSYS_PCS_MUX		0x84
 #define NETSYS_PCS_MUX_MASK		GENMASK(1, 0)

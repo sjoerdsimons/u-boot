@@ -53,7 +53,9 @@ struct udevice *cpu_get_current_dev(void)
 	/* If can't find current cpu device, use the first dev instead */
 	ret = uclass_first_device_err(UCLASS_CPU, &cpu);
 	if (ret) {
-		debug("%s: Could not get CPU device (err = %d)\n",
+		pr_warn("%s: Could not get CPU device (err = %d)\n",
+		      __func__, ret);
+		printk("%s: Could not get CPU device (err = %d)\n",
 		      __func__, ret);
 		return NULL;
 	}

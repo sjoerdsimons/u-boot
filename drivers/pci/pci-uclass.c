@@ -1923,6 +1923,8 @@ int pci_init(void)
 {
 	struct udevice *bus;
 
+	printk("PCI INIT\n");
+
 	/*
 	 * Enumerate all known controller devices. Enumeration has the side-
 	 * effect of probing them, so PCIe devices will be enumerated too.

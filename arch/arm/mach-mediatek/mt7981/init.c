@@ -26,11 +26,6 @@ int dram_init(void)
 	return 0;
 }
 
-void reset_cpu(void)
-{
-	psci_system_reset();
-}
-
 static struct mm_region mt7981_mem_map[] = {
 	{
 		/* DDR */

@@ -110,7 +110,6 @@ struct mtk_eth_priv {
 	struct gpio_desc rst_gpio;
 	int mcm;
 
-	struct reset_ctl rst_fe;
 	struct reset_ctl rst_mcm;
 };
 
@@ -1043,9 +1042,10 @@ static int mtk_eth_start(struct udevice *dev)
 	int i, ret;
 
 	/* Reset FE */
-	reset_assert(&priv->rst_fe);
+	regmap_update_bits(priv->ethsys_regmap, ETHSYS_RSTCTRL, RSTCTRL_FE, RSTCTRL_FE);
 	udelay(1000);
-	reset_deassert(&priv->rst_fe);
+	regmap_update_bits(priv->ethsys_regmap, ETHSYS_RSTCTRL, RSTCTRL_FE,
+	~((uint)RSTCTRL_FE));
 	mdelay(10);
 
 	if (MTK_HAS_CAPS(priv->soc->caps, MTK_NETSYS_V2) ||
@@ -1295,7 +1295,9 @@ static int mtk_eth_of_to_plat(struct udevice *dev)
 	struct ofnode_phandle_args args;
 	struct regmap *regmap;
 	ofnode subnode;
+	ofnode macnode;
 	int ret;
+	char mac_name[10];
 
 	priv->soc = (const struct mtk_soc_data *)dev_get_driver_data(dev);
 	if (!priv->soc) {
@@ -1328,15 +1330,7 @@ static int mtk_eth_of_to_plat(struct udevice *dev)
 			return PTR_ERR(priv->infra_regmap);
 	}
 
-	/* Reset controllers */
-	ret = reset_get_by_name(dev, "fe", &priv->rst_fe);
-	if (ret) {
-		printf("error: Unable to get reset ctrl for frame engine\n");
-		return ret;
-	}
-
 	priv->gmac_id = dev_read_u32_default(dev, "mediatek,gmac-id", 0);
-
 	priv->mdc = 0;
 	subnode = ofnode_find_subnode(dev_ofnode(dev), "mdio");
 	if (ofnode_valid(subnode)) {
@@ -1348,8 +1342,17 @@ static int mtk_eth_of_to_plat(struct udevice *dev)
 		}
 	}
 
+	snprintf(mac_name, sizeof(mac_name), "mac@%d", priv->gmac_id);
+	printk("Grabbing %s node\n", mac_name);
+	macnode = ofnode_find_subnode(dev_ofnode(dev), mac_name);
+	// legacy
+	if (!ofnode_valid(macnode)) {
+		printk("Weee fallback node\n");
+		macnode = dev_ofnode(dev);
+	}
+
 	/* Interface mode is required */
-	pdata->phy_interface = dev_read_phy_mode(dev);
+	pdata->phy_interface = ofnode_read_phy_mode(macnode);
 	priv->phy_interface = pdata->phy_interface;
 	if (pdata->phy_interface == PHY_INTERFACE_MODE_NA) {
 		printf("error: phy-mode is not set\n");
@@ -1357,7 +1360,7 @@ static int mtk_eth_of_to_plat(struct udevice *dev)
 	}
 
 	/* Force mode or autoneg */
-	subnode = ofnode_find_subnode(dev_ofnode(dev), "fixed-link");
+	subnode = ofnode_find_subnode(macnode, "fixed-link");
 	if (ofnode_valid(subnode)) {
 		priv->force_mode = 1;
 		priv->speed = ofnode_read_u32_default(subnode, "speed", 0);
@@ -1453,7 +1456,7 @@ static int mtk_eth_of_to_plat(struct udevice *dev)
 					     &priv->rst_gpio, GPIOD_IS_OUT);
 		}
 	} else {
-		ret = dev_read_phandle_with_args(dev, "phy-handle", NULL, 0,
+		ret = ofnode_parse_phandle_with_args(macnode, "phy-handle", NULL, 0,
 						 0, &args);
 		if (ret) {
 			printf("error: phy-handle is not specified\n");
