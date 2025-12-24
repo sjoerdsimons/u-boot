@@ -7,6 +7,8 @@
 #define NVMEM_H
 
 #include <linux/errno.h>
+#include <dm/ofnode.h>
+
 
 /**
  * DOC: Design
@@ -86,6 +88,26 @@ int nvmem_cell_get_by_index(struct udevice *dev, int index,
 			    struct nvmem_cell *cell);
 
 /**
+ * nvmem_cell_of_get_by_name() - Get an nvmem cell from a given ofnode and name
+ * @node: The ofnode that uses the nvmem cell
+ * @name: The name of the nvmem cell
+ * @cell: The cell to initialize
+ *
+ * Look up the nvmem cell referenced by @name in the nvmem-cell-names property
+ * of @node.
+ *
+ * Return:
+ * * 0 on success
+ * * -EINVAL if the regs property is missing, empty, or undersized
+ * * -ENODEV if the nvmem device is missing or unimplemented
+ * * -ENODATA if @name is not in nvmem-cell-names
+ * * -ENOSYS if CONFIG_NVMEM is disabled
+ * * A negative error if there was a problem reading nvmem-cell-names,
+ *   nvmem-cells, or getting the device
+ */
+int nvmem_cell_of_get_by_name(ofnode node, const char *name,
+			   struct nvmem_cell *cell);
+/**
  * nvmem_cell_get_by_name() - Get an nvmem cell from a given device and name
  * @dev: The device that uses the nvmem cell
  * @name: The name of the nvmem cell
@@ -106,6 +128,27 @@ int nvmem_cell_get_by_index(struct udevice *dev, int index,
 int nvmem_cell_get_by_name(struct udevice *dev, const char *name,
 			   struct nvmem_cell *cell);
 
+/**
+ * nvmem_cell_get_by_name() - Get an nvmem cell from a given device and name
+ * @node: The ofnode that uses the nvmem cell
+ * @name: The name of the nvmem cell
+ * @cell: The cell to initialize
+ *
+ * Look up the nvmem cell referenced by @name in the nvmem-cell-names property
+ * of @ofnode.
+ *
+ * Return:
+ * * 0 on success
+ * * -EINVAL if the regs property is missing, empty, or undersized
+ * * -ENODEV if the nvmem device is missing or unimplemented
+ * * -ENODATA if @name is not in nvmem-cell-names
+ * * -ENOSYS if CONFIG_NVMEM is disabled
+ * * A negative error if there was a problem reading nvmem-cell-names,
+ *   nvmem-cells, or getting the device
+ */
+int nvmem_cell_of_get_by_name(ofnode node, const char *name,
+			      struct nvmem_cell *cell);
+
 #else /* CONFIG_NVMEM */
 
 static inline int nvmem_cell_read(struct nvmem_cell *cell, void *buf, int size)
@@ -125,8 +168,20 @@ static inline int nvmem_cell_get_by_index(struct udevice *dev, int index,
 	return -ENOSYS;
 }
 
+static inline int nvmem_cell_of_get_by_index(ofnode node, int index,
+					     struct nvmem_cell *cell)
+{
+	return -ENOSYS;
+}
+
 static inline int nvmem_cell_get_by_name(struct udevice *dev, const char *name,
 					 struct nvmem_cell *cell)
+{
+	return -ENOSYS;
+}
+
+static inline int nvmem_cell_of_get_by_name(ofnode node, const char *name,
+					    struct nvmem_cell *cell)
 {
 	return -ENOSYS;
 }

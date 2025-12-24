@@ -104,6 +104,8 @@
 	gmac1: mac@1 {
 		compatible = "mediatek,eth-mac";
 		reg = <1>;
+		nvmem-cells = <&macaddr_factory_2a 0>;
+		nvmem-cell-names = "mac-address";
 		phy-mode = "gmii";
 		phy-handle = <&int_gbe_phy>;
 	};
@@ -253,6 +255,12 @@
 
 					macaddr_factory_24: macaddr@24 {
 						reg = <0x24 0x6>;
+						compatible = "mac-base";
+						#nvmem-cell-cells = <1>;
+					};
+
+					macaddr_factory_2a: macaddr@2a {
+						reg = <0x2a 0x6>;
 						compatible = "mac-base";
 						#nvmem-cell-cells = <1>;
 					};

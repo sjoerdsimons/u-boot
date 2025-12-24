@@ -12,6 +12,7 @@
 #include <dm/ofnode.h>
 #include <dm/read.h>
 #include <dm/uclass.h>
+#include <spi_flash.h>
 
 int nvmem_cell_read(struct nvmem_cell *cell, void *buf, size_t size)
 {
@@ -33,6 +34,8 @@ int nvmem_cell_read(struct nvmem_cell *cell, void *buf, size_t size)
 	}
 	case UCLASS_RTC:
 		return dm_rtc_read(cell->nvmem, cell->offset, buf, size);
+	case UCLASS_SPI_FLASH:
+		return spi_flash_read_dm(cell->nvmem, cell->offset, size, buf);
 	default:
 		return -ENOSYS;
 	}
@@ -58,6 +61,8 @@ int nvmem_cell_write(struct nvmem_cell *cell, const void *buf, size_t size)
 	}
 	case UCLASS_RTC:
 		return dm_rtc_write(cell->nvmem, cell->offset, buf, size);
+	case UCLASS_SPI_FLASH:
+		return spi_flash_write_dm(cell->nvmem, cell->offset, size, buf);
 	default:
 		return -ENOSYS;
 	}
@@ -82,6 +87,7 @@ static int nvmem_get_device(ofnode node, struct nvmem_cell *cell)
 		UCLASS_I2C_EEPROM,
 		UCLASS_MISC,
 		UCLASS_RTC,
+		UCLASS_SPI_FLASH,
 	};
 
 	for (i = 0; i < ARRAY_SIZE(ids); i++) {
@@ -95,24 +101,28 @@ static int nvmem_get_device(ofnode node, struct nvmem_cell *cell)
 	return -ENODEV;
 }
 
-int nvmem_cell_get_by_index(struct udevice *dev, int index,
+int nvmem_cell_of_get_by_index(ofnode node, int index,
 			    struct nvmem_cell *cell)
 {
 	fdt_addr_t offset;
 	fdt_size_t size = FDT_SIZE_T_NONE;
 	int ret;
 	struct ofnode_phandle_args args;
+	ofnode parent, device_node;
 
-	dev_dbg(dev, "%s: index=%d\n", __func__, index);
-
-	ret = dev_read_phandle_with_args(dev, "nvmem-cells", NULL, 0, index,
-					 &args);
+	ret = ofnode_parse_phandle_with_args(node, "nvmem-cells", NULL, 0, 
+					     index, &args);
 	if (ret)
 		return ret;
 
-	ret = nvmem_get_device(ofnode_get_parent(args.node), cell);
-	if (ret)
-		return ret;
+	parent = ofnode_get_parent(args.node);
+	if (ofnode_device_is_compatible(parent, "fixed-layout")) {
+		// Parent is a fixed layout, storage is one level up
+		device_node = ofnode_get_parent(parent);
+		log_err("Detected fixed layout");
+	} else {
+		device_node = parent;
+	}
 
 	offset = ofnode_get_addr_size_index_notrans(args.node, 0, &size);
 	if (offset == FDT_ADDR_T_NONE || size == FDT_SIZE_T_NONE) {
@@ -121,21 +131,59 @@ int nvmem_cell_get_by_index(struct udevice *dev, int index,
 		return -EINVAL;
 	}
 
+	parent = ofnode_get_parent(device_node);
+	if (ofnode_device_is_compatible(parent, "fixed-partitions")) {
+		// Parent is a fixed partition
+		fdt_addr_t part_offset;
+
+		log_err("Detected fixed partition\n");
+		ofnode partition = device_node;
+		device_node = ofnode_get_parent(parent);
+
+		part_offset = ofnode_get_addr_size_index_notrans(partition, 0, NULL);
+		if (part_offset == FDT_ADDR_T_NONE) {
+			dev_dbg(cell->nvmem, "missing address or size for partition %s\n",
+				ofnode_get_name(partition));
+			return -EINVAL;
+		}
+		log_err("Detected fixed partition: %lld\n", part_offset);
+		offset += part_offset;
+	}
+
+	ret = nvmem_get_device(device_node, cell);
+	if (ret) {
+		log_err("Device fail: %llx %lld\n", offset, size);
+		return ret;
+	}
+
 	cell->offset = offset;
 	cell->size = size;
+	log_err("We got one: %llx %lld\n", offset, size);
 	return 0;
+}
+
+int nvmem_cell_get_by_index(struct udevice *dev, int index,
+			    struct nvmem_cell *cell)
+{
+	dev_dbg(dev, "%s: index=%d\n", __func__, index);
+	return nvmem_cell_of_get_by_index(dev_ofnode(dev), index, cell);
+}
+
+int nvmem_cell_of_get_by_name(ofnode node, const char *name,
+			      struct nvmem_cell *cell)
+{
+	int index;
+
+	index = ofnode_stringlist_search(node, "nvmem-cell-names", name);
+	if (index < 0)
+		return index;
+
+	return nvmem_cell_of_get_by_index(node, index, cell);
 }
 
 int nvmem_cell_get_by_name(struct udevice *dev, const char *name,
 			   struct nvmem_cell *cell)
 {
-	int index;
-
 	dev_dbg(dev, "%s, name=%s\n", __func__, name);
-
-	index = dev_read_stringlist_search(dev, "nvmem-cell-names", name);
-	if (index < 0)
-		return index;
-
-	return nvmem_cell_get_by_index(dev, index, cell);
+	return nvmem_cell_of_get_by_name(dev_ofnode(dev), name, cell);
 }

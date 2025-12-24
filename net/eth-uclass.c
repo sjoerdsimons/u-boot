@@ -577,8 +577,10 @@ static bool eth_dev_get_mac_address(struct udevice *dev, u8 mac[ARP_HLEN])
 		return true;
 	}
 
-	if (nvmem_cell_get_by_name(dev, "mac-address", &mac_cell))
+	if (nvmem_cell_get_by_name(dev, "mac-address", &mac_cell)) {
+		log_err("NVMEM cell not found\n");
 		return false;
+	}
 
 	return !nvmem_cell_read(&mac_cell, mac, ARP_HLEN);
 #else

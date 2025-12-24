@@ -26,6 +26,7 @@
 #include <linux/mdio.h>
 #include <linux/mii.h>
 #include <linux/printk.h>
+#include <nvmem.h>
 
 #include "mtk_eth.h"
 
@@ -1470,6 +1471,16 @@ static int mtk_eth_of_to_plat(struct udevice *dev)
 			printf("error: phy address is not specified\n");
 			return priv->phy_addr;
 		}
+	}
+
+	struct nvmem_cell mac_cell;
+	if (nvmem_cell_of_get_by_name(macnode, "mac-address", &mac_cell)) {
+		log_err("MTK NVMEM cell not found\n");
+		return 0;
+	}
+
+	if (nvmem_cell_read(&mac_cell, pdata->enetaddr, ARP_HLEN) ) {
+		log_err("MTK NVMEM failed to read\n");
 	}
 
 	return 0;

@@ -413,6 +413,14 @@ int add_mtd_device(struct mtd_info *mtd)
 #endif
 	int i, error;
 
+	log_err("MTD device: %s FLASH OF: %s dev: %p\n",
+		mtd->name,
+		ofnode_get_name(mtd->flash_node),
+		mtd->dev);
+
+
+
+
 #ifndef __UBOOT__
 	if (!mtd->backing_dev_info) {
 		switch (mtd->type) {
