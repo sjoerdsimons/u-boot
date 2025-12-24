@@ -14,7 +14,7 @@ int pwm_set_invert(struct udevice *dev, uint channel, bool polarity)
 	struct pwm_ops *ops = pwm_get_ops(dev);
 
 	if (!ops->set_invert)
-		return -ENOSYS;
+		return polarity ? -ENOSYS : 0;
 
 	return ops->set_invert(dev, channel, polarity);
 }

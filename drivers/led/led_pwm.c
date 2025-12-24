@@ -30,6 +30,7 @@ static int led_pwm_enable(struct udevice *dev)
 	if (ret)
 		return ret;
 
+	log_err("Setting channel %d to %d/%d\n", priv->channel, priv->duty, priv->period);
 	ret = pwm_set_config(priv->pwm, priv->channel, priv->period, priv->duty);
 	if (ret)
 		return ret;
@@ -116,15 +117,17 @@ static int led_pwm_of_to_plat(struct udevice *dev)
 	priv->period = args.args[1];
 	priv->active_low = dev_read_bool(dev, "active-low");
 
-	def_brightness = dev_read_u32_default(dev, "u-boot,default-brightness", 0);
 	max_brightness = dev_read_u32_default(dev, "max-brightness", 255);
-	priv->enabled =  !!def_brightness;
+	def_brightness = dev_read_u32_default(dev, "default-brightness", 0);
+	def_brightness = dev_read_u32_default(dev, "uboot,default-brightness",
+					      def_brightness);
+	priv->enabled = false;
 
 	/*
 	 * No need to handle pwm inverted case (active_low)
 	 * because of pwm_set_invert function
 	 */
-	if (def_brightness < max_brightness)
+	if (def_brightness > 0 && def_brightness < max_brightness)
 		priv->duty = priv->period * def_brightness / max_brightness;
 	else
 		priv->duty = priv->period;
