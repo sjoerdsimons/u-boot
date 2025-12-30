@@ -304,11 +304,8 @@ static int mtk_pcie_power_on(struct udevice *dev)
 
 	pcie->base = dev_remap_addr_name(dev, "pcie-mac");
 	if (!pcie->base) {
-		printk("=> %s:%d\n", __FILE__, __LINE__);
 		return -ENOENT;
 	}
-	printk("=> %s:%d\n", __FILE__, __LINE__);
-
 	pcie->priv = dev;
 
 	/* pcie-phy is optional (mt7988 doesn't need it) */
@@ -319,59 +316,48 @@ static int mtk_pcie_power_on(struct udevice *dev)
 	 * and use clk bulk API to enable them all.
 	 */
 	err = clk_get_by_index(dev, 0, &pcie->pl_250m_ck);
-	printk("=> %s:%d, err: %d \n", __FILE__, __LINE__, err);
 	if (err)
 		return err;
 
 	err = clk_get_by_index(dev, 1, &pcie->tl_26m_ck);
-	printk("=> %s:%d, err: %d \n", __FILE__, __LINE__, err);
 	if (err)
 		return err;
 
 	err = clk_get_by_index(dev, 2, &pcie->peri_26m_ck);
-	printk("=> %s:%d, err: %d \n", __FILE__, __LINE__, err);
 	if (err)
 		return err;
 
 	err = clk_get_by_index(dev, 3, &pcie->top_133m_ck);
-	printk("=> %s:%d, err: %d \n", __FILE__, __LINE__, err);
 	if (err)
 		return err;
 
 	if (pcie->phy.dev) {
 		err = generic_phy_init(&pcie->phy);
-		printk("=> %s:%d, err: %d \n", __FILE__, __LINE__, err);
 		if (err)
 			return err;
 
 		err = generic_phy_power_on(&pcie->phy);
-	printk("=> %s:%d, err: %d \n", __FILE__, __LINE__, err);
 		if (err)
 			goto err_phy_on;
 	}
 
 	err = clk_enable(&pcie->pl_250m_ck);
-	printk("=> %s:%d, err: %d \n", __FILE__, __LINE__, err);
 	if (err)
 		goto err_clk_pl_250m;
 
 	err = clk_enable(&pcie->tl_26m_ck);
-	printk("=> %s:%d, err: %d \n", __FILE__, __LINE__, err);
 	if (err)
 		goto err_clk_tl_26m;
 
 	err = clk_enable(&pcie->peri_26m_ck);
-	printk("=> %s:%d, err: %d \n", __FILE__, __LINE__, err);
 	if (err)
 		goto err_clk_peri_26m;
 
 	err = clk_enable(&pcie->top_133m_ck);
-	printk("=> %s:%d, err: %d \n", __FILE__, __LINE__, err);
 	if (err)
 		goto err_clk_top_133m;
 
 	err = mtk_pcie_startup_port(dev);
-	printk("=> %s:%d, err: %d \n", __FILE__, __LINE__, err);
 	if (err)
 		goto err_startup;
 
@@ -399,11 +385,9 @@ static int mtk_pcie_probe(struct udevice *dev)
 	int err;
 
 	pcie->priv = dev;
-	printk("PROBINDG PCIE\n");
 
 	err = mtk_pcie_power_on(dev);
 	if (err) {
-		printk("FAILED PROBING PCIE\n");
 		return err;
 	}
 

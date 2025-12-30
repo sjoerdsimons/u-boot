@@ -119,7 +119,6 @@ int nvmem_cell_of_get_by_index(ofnode node, int index,
 	if (ofnode_device_is_compatible(parent, "fixed-layout")) {
 		// Parent is a fixed layout, storage is one level up
 		device_node = ofnode_get_parent(parent);
-		log_err("Detected fixed layout");
 	} else {
 		device_node = parent;
 	}
@@ -136,7 +135,6 @@ int nvmem_cell_of_get_by_index(ofnode node, int index,
 		// Parent is a fixed partition
 		fdt_addr_t part_offset;
 
-		log_err("Detected fixed partition\n");
 		ofnode partition = device_node;
 		device_node = ofnode_get_parent(parent);
 
@@ -146,19 +144,16 @@ int nvmem_cell_of_get_by_index(ofnode node, int index,
 				ofnode_get_name(partition));
 			return -EINVAL;
 		}
-		log_err("Detected fixed partition: %lld\n", part_offset);
 		offset += part_offset;
 	}
 
 	ret = nvmem_get_device(device_node, cell);
 	if (ret) {
-		log_err("Device fail: %llx %lld\n", offset, size);
 		return ret;
 	}
 
 	cell->offset = offset;
 	cell->size = size;
-	log_err("We got one: %llx %lld\n", offset, size);
 	return 0;
 }
 
